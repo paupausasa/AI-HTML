@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的個人專業網站：個人首頁、研究、工具、評論、演講</title>
+    <!-- 載入 Tailwind CSS 框架，用於快速響應式設計和美化 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* 使用 Inter 字體作為主要字體 */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Light gray background */
+        }
+        
+        /* 自定義 Tab 內容的動畫效果 */
+        .tab-content {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+
+        .tab-content.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 響應式導覽列調整 */
+        @media (max-width: 768px) {
+            .tab-buttons {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .tab-link {
+                border-bottom-width: 1px; /* 在手機上增加分隔線 */
+            }
+            .tab-link.active {
+                border-left: 4px solid #10b981; /* 手機上使用左側綠色條 */
+                border-bottom: 1px solid #e5e7eb; /* 保持底部細線 */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 網頁標頭 -->
+    <header class="bg-gray-800 text-white shadow-xl">
+        <div class="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-4xl font-bold tracking-tight">蜜蜂老師的教學網站</h1>
+            <p class="mt-2 text-xl font-medium text-gray-300">知識如蜜蜂釀蜜，是一種持續且存續的過程</p>
+        </div>
+    </header>
+
+    <!-- 主內容容器 -->
+    <main class="max-w-6xl mx-auto mt-8 p-4 sm:p-6 lg:p-8">
+        <div class="bg-white shadow-2xl rounded-xl overflow-hidden">
+            
+            <!-- 標籤頁按鈕區域 -->
+            <div class="tab-buttons flex flex-wrap justify-center border-b border-gray-200 bg-gray-50 p-2 sm:p-0">
+                <button class="tab-link active w-full sm:w-auto flex-1 text-center py-3 px-4 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition duration-300 border-b-2 border-transparent sm:border-b-4 sm:border-transparent rounded-md sm:rounded-none" 
+                        onclick="openTab(event, 'home')">
+                    個人首頁
+                </button>
+                <button class="tab-link w-full sm:w-auto flex-1 text-center py-3 px-4 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition duration-300 border-b-2 border-transparent sm:border-b-4 sm:border-transparent rounded-md sm:rounded-none" 
+                        onclick="openTab(event, 'research')">
+                    教學研究
+                </button>
+                <button class="tab-link w-full sm:w-auto flex-1 text-center py-3 px-4 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition duration-300 border-b-2 border-transparent sm:border-b-4 sm:border-transparent rounded-md sm:rounded-none" 
+                        onclick="openTab(event, 'tools')">
+                    自製工具
+                </button>
+                <button class="tab-link w-full sm:w-auto flex-1 text-center py-3 px-4 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition duration-300 border-b-2 border-transparent sm:border-b-4 sm:border-transparent rounded-md sm:rounded-none" 
+                        onclick="openTab(event, 'commentary')">
+                    教育評論
+                </button>
+                <button class="tab-link w-full sm:w-auto flex-1 text-center py-3 px-4 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition duration-300 border-b-2 border-transparent sm:border-b-4 sm:border-transparent rounded-md sm:rounded-none" 
+                        onclick="openTab(event, 'lecture')">
+                    演講紀錄
+                </button>
+            </div>
+
+            <!-- 標籤頁內容區域 -->
+            <div class="p-6 sm:p-10">
+
+                <!-- 1. 個人首頁 內容 (已更新) -->
+                <div id="home" class="tab-content active">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4 border-b pb-2">👋 關於我 (個人首頁)</h2>
+                    <div class="space-y-4 text-gray-700">
+                        <p>台灣國小教師，具有自然科專長、擅長跨領域教學。防災士種子教師。新北市國教輔導團國小自然輔導團兼任團員。業餘愛好地質學、命理學、民俗學等研究。</p>
+
+                        <!-- 核心信念 -> 社群入口 (已更新) -->
+                        <div class="p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
+                            <h3 class="text-xl font-semibold text-green-700">社群入口</h3>
+                            <p>FaceBook社團：<a href="https://www.facebook.com/groups/TeacherB" target="_blank" class="text-blue-600 hover:underline font-medium">蜜蜂老師ㄟ蜂窩</a></p>
+                        </div>
+                        
+                        <!-- 聯繫方式 (加上超連結) -->
+                        <p>
+                            <strong>聯繫方式：</strong> 
+                            請透過 <a href="mailto:cmf.com@gmail.com" class="text-blue-600 hover:underline">E-mail (cmf.com@gmail.com)</a> 或 <a href="https://www.facebook.com/chen.min.feng.129899/" target="_blank" class="text-blue-600 hover:underline">FaceBook 個人頁面</a> 聯繫我。
+                        </p>
+
+                        <!-- 最後的文字說明 (已新增) -->
+                        <p class="text-sm text-red-700 italic border-t pt-4 mt-4">
+                            * 出版社請寄信到e-mail，依教師兼職辦法，僅提供友情免費推薦閱讀書籍、不接受有償業配。演講、講座、研習合作案也請洽電子郵件。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 2. 教學研究 內容 -->
+                <div id="research" class="tab-content">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4 border-b pb-2">📚 教學研究</h2>
+                    <ul class="list-disc list-inside space-y-3 text-gray-700">
+                        <li>**2024 - 學習分析與預測模型：** 探討大數據在個別化學習路徑中的應用。 <span class="text-sm text-blue-500">[論文連結]</span></li>
+                        <li>**2023 - 沉浸式虛擬實境教學效果評估：** 比較 VR 與傳統教學對學生的認知影響。</li>
+                        <li>**2022 - 專題研究：** 開發一套基於遊戲化的數學學習課程。</li>
+                    </ul>
+                </div>
+
+                <!-- 3. 自製工具 內容 -->
+                <div id="tools" class="tab-content">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4 border-b pb-2">🛠️ 自製工具</h2>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="p-4 border border-gray-200 rounded-lg shadow-sm bg-yellow-50">
+                            <h3 class="text-xl font-semibold text-gray-800">互動式評量生成器</h3>
+                            <p class="text-gray-600 mt-1">使用 Python 腳本自動生成多樣化的選擇題和簡答題，適用於高中物理課程。</p>
+                            <a href="#" class="inline-block mt-3 text-sm font-medium text-yellow-700 hover:text-yellow-800">查看 GitHub 儲存庫 →</a>
+                        </div>
+                        <div class="p-4 border border-gray-200 rounded-lg shadow-sm bg-yellow-50">
+                            <h3 class="text-xl font-semibold text-gray-800">時間軸視覺化工具</h3>
+                            <p class="text-gray-600 mt-1">前端應用程式，幫助學生將歷史事件或項目進度視覺化呈現。</p>
+                            <a href="#" class="inline-block mt-3 text-sm font-medium text-yellow-700 hover:text-yellow-800">試用線上版本 →</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. 教育評論 內容 -->
+                <div id="commentary" class="tab-content">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4 border-b pb-2">🗣️ 教育評論</h2>
+                    <div class="space-y-4">
+                        <article class="p-4 border-b border-gray-100">
+                            <h4 class="text-lg font-medium text-gray-800">《論 AI 在義務教育中的倫理界線》</h4>
+                            <p class="text-sm text-gray-500">2025年10月，發表於 [媒體/部落格名稱]</p>
+                            <p class="mt-1 text-gray-700 line-clamp-2">摘要：探討生成式 AI 如何影響學生的創造力，以及學校應如何制定合適的使用規範...</p>
+                        </article>
+                        <article class="p-4 border-b border-gray-100">
+                            <h4 class="text-lg font-medium text-gray-800">《從芬蘭模式看台灣的教師專業發展》</h4>
+                            <p class="text-sm text-gray-500">2025年6月，發表於 [媒體/部落格名稱]</p>
+                            <p class="mt-1 text-gray-700 line-clamp-2">摘要：分析高自主性與高支持度對教師職業生涯的影響與借鏡。</p>
+                        </article>
+                    </div>
+                </div>
+
+                <!-- 5. 演講紀錄 內容 -->
+                <div id="lecture" class="tab-content">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4 border-b pb-2">🎤 演講紀錄</h2>
+                    <div class="space-y-4">
+                        <div class="p-4 border border-gray-200 rounded-lg bg-indigo-50">
+                            <p class="text-lg font-semibold text-indigo-800">主題：數位時代的教學設計革命</p>
+                            <p class="text-sm text-gray-600">日期：2025年11月15日 | 地點：國立教育大學</p>
+                            <a href="#" class="text-indigo-600 hover:text-indigo-700 text-sm mt-1 inline-block">觀看簡報 (PDF) →</a>
+                        </div>
+                        <div class="p-4 border border-gray-200 rounded-lg bg-indigo-50">
+                            <p class="text-lg font-semibold text-indigo-800">主題：善用開源工具打造個人化學習環境</p>
+                            <p class="text-sm text-gray-600">日期：2025年9月20日 | 地點：高中教師研習營</p>
+                            <a href="#" class="text-indigo-600 hover:text-indigo-700 text-sm mt-1 inline-block">觀看演講影片 (Youtube) →</a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- 網頁頁腳 -->
+    <footer class="bg-gray-800 text-white mt-12 py-6">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
+            <p>&copy; 2025 蜜蜂老師. 版權所有。此網頁為個人專業作品展示。</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript 邏輯 -->
+    <script>
+        /**
+         * 處理標籤頁切換的函式
+         * @param {Event} evt - 觸發事件 (點擊按鈕)
+         * @param {string} tabName - 要顯示的標籤頁內容的 ID
+         */
+        function openTab(evt, tabName) {
+            var i, tabContent, tabLinks;
+
+            // 1. 隱藏所有標籤頁內容並移除 active 類別
+            tabContent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabContent.length; i++) {
+                tabContent[i].classList.remove("active");
+            }
+
+            // 2. 移除所有按鈕的 active 類別 (樣式)
+            tabLinks = document.getElementsByClassName("tab-link");
+            for (i = 0; i < tabLinks.length; i++) {
+                // 移除 Tailwind 的 active 樣式
+                tabLinks[i].classList.remove("active", "text-white", "bg-gray-700", "border-teal-500", "font-bold", "shadow-inner", "sm:border-teal-500");
+                // 重新設置預設樣式
+                tabLinks[i].classList.add("text-gray-700", "hover:bg-gray-100");
+            }
+
+            // 3. 顯示當前選定的標籤頁內容
+            document.getElementById(tabName).classList.add("active");
+
+            // 4. 為點擊的按鈕添加 active 樣式
+            evt.currentTarget.classList.remove("text-gray-700", "hover:bg-gray-100");
+            evt.currentTarget.classList.add("active", "text-gray-800", "bg-white", "border-b-4", "border-teal-500", "font-bold", "shadow-sm");
+
+            // 5. 處理手機版 active 樣式 (左側綠色條)
+            if (window.innerWidth <= 768) {
+                 evt.currentTarget.classList.add("border-l-4", "border-teal-500");
+            }
+
+            // 6. 更新 URL Hash，允許分享特定 Tab 的連結
+            history.pushState(null, null, '#' + tabName);
+        }
+
+        // 頁面載入時的初始化邏輯
+        document.addEventListener("DOMContentLoaded", function() {
+            const hash = window.location.hash.replace('#', '');
+            const defaultTabId = hash || 'home'; // 優先使用 URL hash，否則使用 'home'
+            const defaultButton = document.querySelector(`.tab-buttons .tab-link[onclick*='${defaultTabId}']`);
+
+            // 觸發預設 Tab 的點擊事件
+            if (defaultButton) {
+                // 由於瀏覽器尚未執行 DOMContentLoaded 結束後的第一次繪製，直接呼叫 openTab 即可
+                openTab({ currentTarget: defaultButton }, defaultTabId);
+            } else {
+                 // 如果 URL hash 是無效的，確保首頁被正確初始化
+                 const homeButton = document.querySelector(".tab-buttons .tab-link");
+                 if(homeButton) {
+                    openTab({ currentTarget: homeButton }, 'home');
+                 }
+            }
+        });
+    </script>
+</body>
+</html>
