@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>英文單字測驗生成器</title>
+    <title>英文單字測驗生成器 (離線修正版)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -136,6 +136,24 @@
         <!-- 右欄: 控制與輸入區 -->
         <div id="controlPanel" class="lg:w-1/2 space-y-6">
 
+            <!-- 0. API Key 設定 (新增) -->
+            <div class="input-box space-y-4 border-2 border-indigo-100 bg-indigo-50">
+                <h2 class="text-xl font-semibold text-indigo-800 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                    0. API Key 設定 (必填)
+                </h2>
+                <div class="text-sm text-gray-600">
+                    離線使用翻譯與語音功能，需要您的 Google Gemini API Key。<br>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-600 underline font-bold hover:text-indigo-800">點此免費申請 API Key</a>
+                </div>
+                <div>
+                    <input type="password" id="apiKeyInput" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="貼上您的 API Key (例如: AIzaSy...)">
+                    <p class="text-xs text-gray-500 mt-1">系統會自動儲存在您的瀏覽器中，下次無需重新輸入。</p>
+                </div>
+            </div>
+
             <div class="input-box space-y-4">
                 <h2 class="text-xl font-semibold text-gray-800">1. 測驗內容輸入</h2>
 
@@ -207,7 +225,7 @@
                         匯出學生作答網頁 (.html)
                     </button>
                     <p class="text-xs text-gray-500 mt-2 text-center">
-                        此功能會下載一個獨立的網頁檔案。<br>
+                        此功能會下載一個獨立的網頁檔案 (內含您的 API Key)。<br>
                         請將該檔案傳給學生，他們即可在平板或電腦上進行填空作答，並可聆聽發音。
                     </p>
                 </div>
@@ -246,8 +264,7 @@
         // Global state
         let wordsData = [];
         let currentColumns = 1;
-        const apiKey = ""; 
-
+        
         // DOM elements
         const liveInput = document.getElementById('liveInput');
         const fileUpload = document.getElementById('fileUpload');
@@ -270,8 +287,32 @@
         const showDefinitionsCheckbox = document.getElementById('showDefinitions');
         const generateDefinitionsBtn = document.getElementById('generateDefinitionsBtn');
         const exportStudentHtmlBtn = document.getElementById('exportStudentHtmlBtn');
+        const apiKeyInput = document.getElementById('apiKeyInput');
 
         // --- Utility Functions ---
+
+        // Load API Key from local storage
+        function loadApiKey() {
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) {
+                apiKeyInput.value = savedKey;
+            }
+        }
+        
+        // Save API Key to local storage
+        apiKeyInput.addEventListener('input', () => {
+            localStorage.setItem('gemini_api_key', apiKeyInput.value.trim());
+        });
+
+        // Get API Key safely
+        function getApiKey() {
+            const key = apiKeyInput.value.trim();
+            if (!key) {
+                showModal('API Key 缺失', '請先在右上角「API Key 設定」欄位輸入您的 Google API Key，才能使用翻譯與語音功能。');
+                return null;
+            }
+            return key;
+        }
 
         function showModal(title, body) {
             modalTitle.textContent = title;
@@ -351,15 +392,17 @@
         
         // --- TTS API with Updated Voice ---
         async function callTTSAPI(word) {
+            const currentKey = getApiKey();
+            if (!currentKey) return null;
+
             const ttsBtn = document.querySelector(`button[data-word-text="${word}"]`);
             if (ttsBtn) {
                 ttsBtn.disabled = true;
                 ttsBtn.innerHTML = '<svg class="animate-spin h-4 w-4 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
             }
 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${currentKey}`;
 
-            // CHANGED: Use "Aoede" for a more energetic/younger female tone
             const payload = {
                 contents: [{ parts: [{ text: "Say cheerfully: " + word }] }],
                 generationConfig: {
@@ -383,9 +426,13 @@
 
                 if (response.ok) {
                     result = await response.json();
+                } else {
+                    const err = await response.json();
+                    showModal('API 錯誤', `API 回應錯誤: ${err.error?.message || response.statusText}`);
                 }
             } catch (error) {
                 console.error("TTS API Call Error:", error);
+                showModal('連線錯誤', '無法連線到 Google API，請檢查網路或 API Key。');
             }
 
             if (ttsBtn) {
@@ -398,7 +445,7 @@
                 const audioData = part?.inlineData?.data;
                 
                 if (audioData) {
-                    const sampleRate = 24000; // Aoede often uses 24k
+                    const sampleRate = 24000;
                     const pcmData = base64ToArrayBuffer(audioData);
                     const pcm16 = new Int16Array(pcmData);
                     const wavBlob = pcmToWav(pcm16, sampleRate);
@@ -411,6 +458,9 @@
         // --- AI Definition Generation ---
         
         async function generateDefinitions() {
+            const currentKey = getApiKey();
+            if (!currentKey) return;
+
             if (wordsData.length === 0) {
                 showModal('操作提示', '請先生成單字清單。');
                 return;
@@ -440,7 +490,7 @@
                 },
             };
 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${currentKey}`;
             
             try {
                 const response = await fetch(apiUrl, {
@@ -466,10 +516,13 @@
                     renderDefinitionPanel();
                     renderQuiz();
                     showModal('翻譯完成', `已成功為 ${wordsData.length} 個單字生成中文翻譯。`);
+                } else {
+                     const err = await response.json();
+                     showModal('API 錯誤', `翻譯請求失敗: ${err.error?.message || response.statusText}`);
                 }
             } catch (error) {
                 console.error("API Call Error:", error);
-                showModal('自動翻譯錯誤', '無法連線到翻譯服務。');
+                showModal('自動翻譯錯誤', '無法連線到翻譯服務。請檢查您的 API Key 與網路連線。');
             }
             genBtn.disabled = false;
             genBtn.textContent = '一鍵生成中文翻譯 (AI)';
@@ -484,19 +537,16 @@
                 return;
             }
 
-            // Simple cleaning: keep letters, spaces, and single quotes.
             const cleanText = text.replace(/[^a-zA-Z\s']/g, ' ').toLowerCase();
             const rawWords = cleanText.split(/\s+/).filter(w => w.length > 0);
             
-            // CHANGED: Removed length filter > 4 and common words check to allow "unlimited" words
             const uniqueWordsMap = new Map();
             rawWords.forEach(word => {
-                if (word.length >= 1) { // Only check if it's not empty
+                if (word.length >= 1) { 
                     uniqueWordsMap.set(word, word);
                 }
             });
 
-            // Keep existing definitions
             const existingDefinitions = new Map(wordsData.map(w => [w.text, w.chineseDefinition]));
 
             wordsData = Array.from(uniqueWordsMap.keys()).map((word, index) => ({
@@ -560,7 +610,6 @@
 
             const showDefinitions = showDefinitionsCheckbox.checked;
             
-            // Container for list
             const list = document.createElement('div');
             list.className = 'flex flex-col gap-3 pl-2';
             
@@ -569,13 +618,11 @@
                 li.className = 'quiz-item-li text-lg';
                 li.setAttribute('data-word-id-display', item.id); 
                 
-                // FIXED: Explicit Numbering Span (Item 1, 2, 3...)
                 const numberSpan = document.createElement('span');
                 numberSpan.className = 'font-bold text-gray-700 mr-2 min-w-[1.5rem] text-right';
                 numberSpan.textContent = `${item.id}.`;
                 li.appendChild(numberSpan);
 
-                // English Word (Interactive)
                 const wordWrapper = document.createElement('span');
                 wordWrapper.setAttribute('data-id', item.id);
                 wordWrapper.classList.add('interactive-word', 'font-mono', 'flex-shrink-0', 'mr-4');
@@ -599,17 +646,14 @@
 
                 li.appendChild(wordWrapper);
 
-                // Chinese Definition (No Italic)
                 const defText = item.chineseDefinition.trim();
                 if (showDefinitions && defText !== '') {
                     const defSpan = document.createElement('span');
-                    // CHANGED: not-italic class ensures text is upright
                     defSpan.className = 'text-sm text-gray-500 not-italic flex-shrink-0 min-w-[5rem] md:min-w-[10rem] mr-4';
                     defSpan.textContent = `(${defText})`;
                     li.appendChild(defSpan);
                 }
 
-                // TTS Button
                 const ttsButton = document.createElement('button');
                 ttsButton.type = 'button';
                 ttsButton.title = '播放美式發音';
@@ -659,6 +703,9 @@
                 return;
             }
 
+            const currentKey = getApiKey();
+            if(!currentKey) return; 
+
             const exportData = wordsData.map(w => ({
                 id: w.id,
                 text: w.text,
@@ -696,7 +743,8 @@
     </div>
 
     <script>
-        const apiKey = "${apiKey}"; 
+        // 注意：此處已嵌入您的 API Key 以供學生離線使用
+        const apiKey = "${currentKey}"; 
         const wordsData = ${JSON.stringify(exportData)};
 
         // TTS Helpers embedded
@@ -916,12 +964,12 @@
             URL.revokeObjectURL(url);
         }
 
-        exportStudentHtmlBtn.addEventListener('click', exportStudentHtml); // Bind event
+        exportStudentHtmlBtn.addEventListener('click', exportStudentHtml); 
 
 
         // --- Event Listeners for Controls ---
         
-        generateDefinitionsBtn.addEventListener('click', generateDefinitions); // NEW: AI Definition Button
+        generateDefinitionsBtn.addEventListener('click', generateDefinitions); 
 
         // File Upload Handler
         fileUpload.addEventListener('change', (event) => {
@@ -1006,6 +1054,7 @@
         });
 
         document.addEventListener('DOMContentLoaded', () => {
+            loadApiKey();
             setColumns(currentColumns);
         });
     </script>
