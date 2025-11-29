@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORID 教師觀課與議課矩陣 (直線箭頭版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --header-bg: #475569;
+            --header-text: #f8fafc;
+            --cell-bg: #ffffff;
+        }
+
+        body {
+            overscroll-behavior: none;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* 矩陣網格設定 */
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: 110px repeat(4, 1fr);
+            grid-template-rows: 80px repeat(4, 1fr);
+            gap: 2px;
+            background-color: #cbd5e1;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .matrix-cell {
+            background-color: var(--cell-bg);
+            padding: 4px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        /* 表頭樣式 */
+        .header-col {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            text-align: center;
+            padding: 5px;
+            line-height: 1.2;
+        }
+        
+        .header-row {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 4px;
+            line-height: 1.1;
+        }
+        .header-title { font-size: 1.1rem; font-weight: 800; }
+        .header-subtitle { font-size: 0.65rem; font-weight: normal; opacity: 0.9; margin-top: 2px; }
+
+        .corner-cell {
+            background-color: #334155;
+            z-index: 10;
+        }
+
+        /* 卡片樣式 */
+        .note-card {
+            flex: 1 1 auto;
+            min-height: 0;
+            border: 1px solid #cbd5e1;
+            background-color: transparent;
+            border-radius: 4px;
+            padding: 2px 4px;
+            position: relative;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            text-align: left;
+            cursor: grab;
+        }
+
+        .note-card:hover {
+            border-color: #64748b;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            z-index: 20; /* 確保 hover 時在上層 */
+        }
+        
+        .note-card:active { cursor: grabbing; }
+
+        .note-card.editing {
+            background-color: #fff;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            cursor: text;
+            z-index: 50;
+        }
+
+        .note-card.selected {
+            border: 2px solid #3b82f6 !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .highlight-yellow { background-color: rgba(254, 249, 195, 0.7) !important; border-color: #eab308 !important; }
+        .highlight-green { background-color: rgba(220, 252, 231, 0.7) !important; border-color: #22c55e !important; }
+        .highlight-blue { background-color: rgba(219, 234, 254, 0.7) !important; border-color: #3b82f6 !important; }
+
+        /* 筆記文字內容容器 */
+        .note-content-wrapper {
+            width: 100%;
+            max-height: 100%;
+            overflow: hidden;
+            display: block;
+            text-align: left;
+            word-break: break-all;
+            white-space: normal;
+            font-size: 12px; 
+            line-height: 1.3;
+        }
+        
+        .note-content-wrapper span[contenteditable="true"] {
+            outline: none;
+            background-color: rgba(255, 255, 255, 0.8);
+            cursor: text;
+            user-select: text;
+            min-width: 20px;
+            display: inline-block;
+        }
+
+        .note-id-badge {
+            font-weight: bold;
+            margin-right: 4px;
+            display: inline-block;
+            opacity: 0.7;
+            font-size: 0.9em;
+        }
+
+        .matrix-cell[data-density="level-2"] .note-content-wrapper { font-size: 11px; line-height: 1.25; }
+        .matrix-cell[data-density="level-3"] .note-content-wrapper { font-size: 10px; line-height: 1.2; }
+        .matrix-cell[data-density="level-4"] .note-content-wrapper { font-size: 9px; line-height: 1.15; padding: 1px 0; }
+        .matrix-cell[data-density="level-5"] .note-content-wrapper { font-size: 8px; line-height: 1.1; padding: 0; }
+
+        /* 連接點 (+) */
+        .connector {
+            position: absolute;
+            width: 14px; height: 14px;
+            background-color: #94a3b8; color: white;
+            font-size: 10px; line-height: 14px; text-align: center;
+            border-radius: 50%; cursor: crosshair;
+            opacity: 0; transition: opacity 0.2s, transform 0.2s; z-index: 40;
+        }
+        .note-card:hover .connector, .connector.active { opacity: 1; }
+        .connector:hover, .connector.active { background-color: #ef4444; transform: scale(1.3); }
+        .conn-t { top: -7px; left: 50%; transform: translateX(-50%); }
+        .conn-b { bottom: -7px; left: 50%; transform: translateX(-50%); }
+        .conn-l { left: -7px; top: 50%; transform: translateY(-50%); }
+        .conn-r { right: -7px; top: 50%; transform: translateY(-50%); }
+
+        #svg-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+        
+        /* 修改重點：實線、50%透明、箭頭 */
+        path.connection-line {
+            fill: none;
+            stroke: #ef4444;
+            stroke-width: 2;
+            stroke-opacity: 0.5; /* 50% 透明度 */
+            transition: d 0.2s ease;
+            marker-end: url(#arrowhead); /* 箭頭 */
+        }
+
+        #context-menu { display: none; position: absolute; z-index: 200; background-color: white; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); padding: 4px; }
+        .menu-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-size: 14px; }
+        .menu-item:hover { background-color: #f1f5f9; }
+        .color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 4px; padding: 12px; position: fixed; z-index: 200; left: 50%; bottom: 120px; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
+        #toast.show { visibility: visible; opacity: 1; bottom: 150px; }
+        #toolbar { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 80%; max-width: 900px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(5px); border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); z-index: 100; border: 1px solid #e2e8f0; display: flex; flex-direction: column; }
+        #toolbar-handle { cursor: grab; } #toolbar-handle:active { cursor: grabbing; }
+        .sub-label { font-size: 0.75rem; font-weight: normal; opacity: 0.8; margin-top: 2px; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <svg id="svg-layer">
+        <!-- 定義箭頭標記 -->
+        <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+            refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444" fill-opacity="0.5" />
+            </marker>
+        </defs>
+    </svg>
+    <div id="toast">提示訊息</div>
+
+    <div id="context-menu">
+        <div class="menu-item" onclick="applyHighlight('highlight-yellow')"><div class="color-dot bg-yellow-200"></div> 淡黃標記</div>
+        <div class="menu-item" onclick="applyHighlight('highlight-green')"><div class="color-dot bg-green-200"></div> 淡綠標記</div>
+        <div class="menu-item" onclick="applyHighlight('highlight-blue')"><div class="color-dot bg-blue-200"></div> 淡藍標記</div>
+        <hr class="my-1 border-slate-200">
+        <div class="menu-item text-slate-500" onclick="applyHighlight(null)">清除標記</div>
+    </div>
+
+    <div class="matrix-grid" id="matrix-container">
+        <div class="corner-cell flex flex-col justify-between items-center text-white p-2">
+            <div class="flex gap-2 w-full justify-center">
+                <button onclick="exportData()" class="text-[10px] bg-slate-600 hover:bg-slate-500 px-2 py-1 rounded transition flex items-center" title="匯出記錄">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>匯出
+                </button>
+                <button onclick="document.getElementById('file-input').click()" class="text-[10px] bg-slate-600 hover:bg-slate-500 px-2 py-1 rounded transition flex items-center" title="匯入記錄">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>匯入
+                </button>
+                <input type="file" id="file-input" accept=".json" class="hidden" onchange="importData(event)">
+            </div>
+            <div class="text-lg font-bold mt-1">觀課矩陣</div>
+        </div>
+
+        <div class="header-col bg-sky-700"><div>客觀事實 <span class="text-yellow-300">O</span></div><div class="sub-label">Objective</div></div>
+        <div class="header-col bg-emerald-700"><div>感受反應 <span class="text-yellow-300">R</span></div><div class="sub-label">Reflective</div></div>
+        <div class="header-col bg-indigo-700"><div>詮釋意義 <span class="text-yellow-300">I</span></div><div class="sub-label">Interpretive</div></div>
+        <div class="header-col bg-rose-700"><div>決定行動 <span class="text-yellow-300">D</span></div><div class="sub-label">Decisional</div></div>
+
+        <!-- Row 1 -->
+        <div class="header-row border-t border-slate-500"><span class="header-title">教材</span><span class="header-subtitle">課程</span></div>
+        <div class="matrix-cell" id="cell-0-0" data-dim="0" data-orid="0"></div>
+        <div class="matrix-cell" id="cell-0-1" data-dim="0" data-orid="1"></div>
+        <div class="matrix-cell" id="cell-0-2" data-dim="0" data-orid="2"></div>
+        <div class="matrix-cell" id="cell-0-3" data-dim="0" data-orid="3"></div>
+        <!-- Row 2 -->
+        <div class="header-row border-t border-slate-500"><span class="header-title">教學者</span><span class="header-subtitle">教法</span></div>
+        <div class="matrix-cell" id="cell-1-0" data-dim="1" data-orid="0"></div>
+        <div class="matrix-cell" id="cell-1-1" data-dim="1" data-orid="1"></div>
+        <div class="matrix-cell" id="cell-1-2" data-dim="1" data-orid="2"></div>
+        <div class="matrix-cell" id="cell-1-3" data-dim="1" data-orid="3"></div>
+        <!-- Row 3 -->
+        <div class="header-row border-t border-slate-500"><span class="header-title">學生</span><span class="header-subtitle leading-tight">有無參與、互動、鷹架、成長</span></div>
+        <div class="matrix-cell" id="cell-2-0" data-dim="2" data-orid="0"></div>
+        <div class="matrix-cell" id="cell-2-1" data-dim="2" data-orid="1"></div>
+        <div class="matrix-cell" id="cell-2-2" data-dim="2" data-orid="2"></div>
+        <div class="matrix-cell" id="cell-2-3" data-dim="2" data-orid="3"></div>
+        <!-- Row 4 -->
+        <div class="header-row border-t border-slate-500"><span class="header-title">情境</span><span class="header-subtitle leading-tight">佈題、教室布置、硬體設備、動線</span></div>
+        <div class="matrix-cell" id="cell-3-0" data-dim="3" data-orid="0"></div>
+        <div class="matrix-cell" id="cell-3-1" data-dim="3" data-orid="1"></div>
+        <div class="matrix-cell" id="cell-3-2" data-dim="3" data-orid="2"></div>
+        <div class="matrix-cell" id="cell-3-3" data-dim="3" data-orid="3"></div>
+    </div>
+
+    <div id="toolbar">
+        <div id="toolbar-handle" class="bg-slate-100 rounded-t-xl py-2 px-4 border-b border-slate-200 flex justify-between items-center">
+            <div class="flex items-center text-slate-500 text-sm font-semibold">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>輸入控制台
+            </div>
+            <button onclick="this.closest('#toolbar').querySelector('.p-4').classList.toggle('hidden')" class="text-slate-400 hover:text-slate-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.707 5.293a1 1 0 010 1.414L8.414 12l6.293 6.293a1 1 0 11-1.414 1.414l-7-7a1 1 0 010-1.414l7-7a1 1 0 011.414 0z" clip-rule="evenodd" transform="rotate(-90 10 10)" /></svg>
+            </button>
+        </div>
+        <div class="p-4 flex flex-wrap gap-3 items-center bg-white rounded-b-xl">
+            <div class="flex-grow flex flex-col relative">
+                <input type="text" id="input-text" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" placeholder="輸入觀察內容..." autocomplete="off">
+            </div>
+            <button id="btn-ai" onclick="simulateAI()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg font-medium text-sm flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                <span id="ai-text">AI 判讀</span>
+            </button>
+            <div class="flex gap-2">
+                <select id="sel-dim" class="px-2 py-2 border border-slate-300 rounded-lg bg-slate-50 text-sm"><option value="" disabled selected>選擇項度</option><option value="0">教材與課程</option><option value="1">教學者與教法</option><option value="2">學生與學習</option><option value="3">情境與環境</option></select>
+                <select id="sel-orid" class="px-2 py-2 border border-slate-300 rounded-lg bg-slate-50 text-sm"><option value="" disabled selected>選擇 ORID</option><option value="0">O - 客觀</option><option value="1">R - 感受</option><option value="2">I - 詮釋</option><option value="3">D - 決定</option></select>
+            </div>
+            <button onclick="addNoteBtnClick()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-md active:scale-95">確認</button>
+        </div>
+    </div>
+
+    <script>
+        let noteCounter = 0;
+        let linkStart = null;
+        let selectedNote = null;
+        let contextMenuTargetId = null;
+        const svgLayer = document.getElementById("svg-layer");
+        const matrixContainer = document.getElementById("matrix-container");
+        let lines = []; 
+
+        document.querySelectorAll('.matrix-cell').forEach(cell => {
+            cell.addEventListener('dragover', e => e.preventDefault());
+            cell.addEventListener('drop', handleDrop);
+        });
+
+        document.addEventListener('click', (e) => {
+            document.getElementById("context-menu").style.display = "none";
+            if (!e.target.closest('.note-card') && !e.target.closest('.connector')) {
+                deselectNote();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.isContentEditable) return;
+            if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNote) {
+                deleteNote(selectedNote);
+                e.preventDefault();
+            }
+        });
+
+        function addNoteBtnClick() {
+            const text = document.getElementById("input-text").value.trim();
+            const dim = document.getElementById("sel-dim").value;
+            const orid = document.getElementById("sel-orid").value;
+            if (!text || dim === "" || orid === "") { showToast("請輸入文字並確認分類！"); return; }
+            createNoteElement(text, dim, orid);
+            document.getElementById("input-text").value = "";
+        }
+
+        function createNoteElement(text, dim, orid, id = null, highlightClass = null) {
+            const targetCell = document.getElementById(`cell-${dim}-${orid}`);
+            noteCounter = id ? Math.max(noteCounter, parseInt(id.split('-')[1])) : noteCounter + 1;
+            const noteId = id || `note-${noteCounter}`;
+
+            const note = document.createElement("div");
+            note.className = "note-card";
+            if (highlightClass) note.classList.add(highlightClass);
+            note.id = noteId;
+            note.draggable = true;
+
+            note.innerHTML = `
+                <div class="note-content-wrapper">
+                    <span class="note-id-badge">#${noteId.split('-')[1]}</span>
+                    <span>${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</span>
+                </div>
+                <div class="connector conn-t" data-pos="t">+</div>
+                <div class="connector conn-b" data-pos="b">+</div>
+                <div class="connector conn-l" data-pos="l">+</div>
+                <div class="connector conn-r" data-pos="r">+</div>
+            `;
+
+            note.addEventListener('dragstart', handleDragStart);
+            note.addEventListener('click', handleNoteClick);
+            note.addEventListener('dblclick', handleNoteDblClick);
+            note.addEventListener('contextmenu', handleContextMenu);
+            note.querySelectorAll('.connector').forEach(c => c.addEventListener('click', handleLinkClick));
+
+            targetCell.appendChild(note);
+            updateCellDensity(targetCell); 
+            return note;
+        }
+
+        function updateCellDensity(cell) {
+            const count = cell.children.length;
+            if (count > 12) cell.setAttribute('data-density', 'level-5');
+            else if (count > 9) cell.setAttribute('data-density', 'level-4');
+            else if (count > 6) cell.setAttribute('data-density', 'level-3');
+            else if (count > 3) cell.setAttribute('data-density', 'level-2');
+            else cell.setAttribute('data-density', 'level-1');
+        }
+
+        function handleNoteDblClick(e) {
+            e.stopPropagation();
+            const note = this;
+            const textSpan = note.querySelector('.note-content-wrapper span:last-child');
+            textSpan.contentEditable = true;
+            textSpan.focus();
+            note.draggable = false;
+            note.classList.add('editing');
+
+            function finishEdit() {
+                textSpan.contentEditable = false;
+                note.draggable = true;
+                note.classList.remove('editing');
+                textSpan.removeEventListener('blur', finishEdit);
+                textSpan.removeEventListener('keydown', handleKey);
+            }
+
+            function handleKey(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    textSpan.blur();
+                }
+            }
+            textSpan.addEventListener('blur', finishEdit);
+            textSpan.addEventListener('keydown', handleKey);
+        }
+
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.id);
+            deselectNote();
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const noteId = e.dataTransfer.getData('text/plain');
+            const note = document.getElementById(noteId);
+            const targetCell = e.target.closest('.matrix-cell');
+            
+            if (note && targetCell && note.parentElement !== targetCell) {
+                const oldCell = note.parentElement;
+                targetCell.appendChild(note);
+                updateCellDensity(oldCell);
+                updateCellDensity(targetCell);
+                lines.forEach(lineObj => {
+                    if (lineObj.startId === noteId || lineObj.endId === noteId) {
+                        updateLinePosition(lineObj);
+                    }
+                });
+            }
+        }
+
+        function handleNoteClick(e) {
+            if (e.target.classList.contains('connector')) return;
+            if (e.target.isContentEditable) return;
+            selectNote(this);
+        }
+
+        function selectNote(note) {
+            if (selectedNote) selectedNote.classList.remove('selected');
+            selectedNote = note;
+            selectedNote.classList.add('selected');
+        }
+
+        function deselectNote() {
+            if (selectedNote) {
+                selectedNote.classList.remove('selected');
+                selectedNote = null;
+            }
+        }
+
+        function deleteNote(note) {
+            const cell = note.parentElement;
+            const noteId = note.id;
+            lines = lines.filter(lineObj => {
+                if (lineObj.startId === noteId || lineObj.endId === noteId) {
+                    svgLayer.removeChild(lineObj.svgElem);
+                    return false;
+                }
+                return true;
+            });
+            note.remove();
+            updateCellDensity(cell);
+            selectedNote = null;
+            showToast(`已刪除 ${noteId.split('-')[1]} 號筆記`);
+        }
+
+        function handleContextMenu(e) {
+            e.preventDefault();
+            selectNote(this);
+            contextMenuTargetId = this.id;
+            const menu = document.getElementById("context-menu");
+            menu.style.display = "block";
+            menu.style.left = `${e.pageX}px`;
+            menu.style.top = `${e.pageY}px`;
+        }
+
+        function applyHighlight(colorClass) {
+            const note = document.getElementById(contextMenuTargetId);
+            if (note) {
+                note.classList.remove('highlight-yellow', 'highlight-green', 'highlight-blue');
+                if (colorClass) note.classList.add(colorClass);
+            }
+            document.getElementById("context-menu").style.display = "none";
+        }
+
+        function handleLinkClick(e) {
+            e.stopPropagation();
+            const targetNote = e.target.closest('.note-card');
+            const targetNoteId = targetNote.id;
+            const targetPos = e.target.dataset.pos;
+
+            if (!linkStart) {
+                linkStart = { id: targetNoteId, el: e.target, pos: targetPos };
+                e.target.classList.add("active");
+                showToast("已選取起點");
+            } else {
+                if (linkStart.id === targetNoteId) {
+                    linkStart.el.classList.remove("active");
+                    linkStart = null;
+                    showToast("取消連結");
+                    return;
+                }
+                const exists = lines.some(l => 
+                    (l.startId === linkStart.id && l.endId === targetNoteId) || 
+                    (l.startId === targetNoteId && l.endId === linkStart.id)
+                );
+                if (!exists) {
+                    createLine(linkStart.id, linkStart.pos, targetNoteId, targetPos);
+                }
+                linkStart.el.classList.remove("active");
+                linkStart = null;
+            }
+        }
+
+        function createLine(startId, startPos, endId, endPos) {
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("class", "connection-line");
+            svgLayer.appendChild(path);
+            
+            const lineObj = { 
+                startId, startPos, 
+                endId, endPos, 
+                svgElem: path 
+            };
+            lines.push(lineObj);
+            updateLinePosition(lineObj);
+        }
+
+        // 修改：單純的直線繪製，不進行碰撞檢測
+        function updateLinePosition(lineObj) {
+            const startNote = document.getElementById(lineObj.startId);
+            const endNote = document.getElementById(lineObj.endId);
+            if (!startNote || !endNote) return;
+
+            const startConn = startNote.querySelector(`.connector[data-pos="${lineObj.startPos}"]`);
+            const endConn = endNote.querySelector(`.connector[data-pos="${lineObj.endPos}"]`);
+            
+            if(!startConn || !endConn) return;
+
+            const r1 = startConn.getBoundingClientRect();
+            const r2 = endConn.getBoundingClientRect();
+            
+            const x1 = r1.left + r1.width / 2;
+            const y1 = r1.top + r1.height / 2;
+            const x2 = r2.left + r2.width / 2;
+            const y2 = r2.top + r2.height / 2;
+
+            // 直接畫直線
+            lineObj.svgElem.setAttribute("d", `M ${x1} ${y1} L ${x2} ${y2}`);
+        }
+
+        window.addEventListener("resize", () => lines.forEach(updateLinePosition));
+        document.addEventListener("scroll", () => lines.forEach(updateLinePosition), true);
+
+        function exportData() {
+            const data = {
+                notes: [],
+                lines: lines.map(l => ({ 
+                    startId: l.startId, 
+                    startPos: l.startPos, 
+                    endId: l.endId, 
+                    endPos: l.endPos 
+                }))
+            };
+            document.querySelectorAll('.note-card').forEach(note => {
+                const cell = note.parentElement;
+                const textContent = note.querySelector('.note-content-wrapper span:last-child').innerText;
+                const highlight = Array.from(note.classList).find(c => c.startsWith('highlight-'));
+                data.notes.push({
+                    id: note.id,
+                    text: textContent,
+                    dim: cell.dataset.dim,
+                    orid: cell.dataset.orid,
+                    highlight: highlight || null
+                });
+            });
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "observation_data.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+            showToast("資料已匯出");
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    document.querySelectorAll('.note-card').forEach(n => n.remove());
+                    lines.forEach(l => {
+                        if(l.svgElem) svgLayer.removeChild(l.svgElem);
+                    });
+                    lines = [];
+                    document.querySelectorAll('.matrix-cell').forEach(c => updateCellDensity(c));
+                    noteCounter = 0;
+                    
+                    data.notes.forEach(n => {
+                        createNoteElement(n.text, n.dim, n.orid, n.id, n.highlight);
+                    });
+                    
+                    data.lines.forEach(l => createLine(l.startId, l.startPos, l.endId, l.endPos));
+                    
+                    showToast("資料匯入成功");
+                } catch (err) {
+                    showToast("匯入失敗，檔案格式錯誤");
+                    console.error(err);
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById("toast");
+            toast.innerText = msg; toast.className = "show";
+            setTimeout(() => toast.className = toast.className.replace("show", ""), 3000);
+        }
+
+        function simulateAI() {
+            const input = document.getElementById("input-text").value;
+            if (!input.trim()) { showToast("請先輸入文字！"); return; }
+            document.getElementById("ai-text").innerText = "...";
+            setTimeout(() => {
+                document.getElementById("sel-dim").value = Math.floor(Math.random() * 4);
+                document.getElementById("sel-orid").value = Math.floor(Math.random() * 4);
+                document.getElementById("ai-text").innerText = "AI 判讀";
+                showToast("AI 已提供建議");
+            }, 800);
+        }
+
+        const toolbar = document.getElementById("toolbar");
+        const handle = document.getElementById("toolbar-handle");
+        let isDragging = false, startX, startY, initialX, initialY;
+        handle.addEventListener("mousedown", e => {
+            isDragging = true; startX = e.clientX; startY = e.clientY;
+            const rect = toolbar.getBoundingClientRect();
+            initialX = rect.left; initialY = rect.top;
+            toolbar.style.bottom = 'auto'; toolbar.style.left = initialX + 'px'; toolbar.style.top = initialY + 'px';
+            toolbar.style.transform = 'none';
+        });
+        document.addEventListener("mousemove", e => {
+            if (!isDragging) return;
+            toolbar.style.left = (initialX + e.clientX - startX) + 'px';
+            toolbar.style.top = (initialY + e.clientY - startY) + 'px';
+        });
+        document.addEventListener("mouseup", () => isDragging = false);
+    </script>
+</body>
+</html>
