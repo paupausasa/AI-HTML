@@ -188,6 +188,8 @@
 
     <div id="context-menu">
         <div class="menu-item" onclick="toggleCardZoom()"><span class="text-blue-500 font-bold">🔍 放大檢視 (1.5x)</span></div>
+        <!-- 新增複製選項 -->
+        <div class="menu-item" onclick="copyNoteContext()"><span class="text-slate-700">📄 複製</span></div>
         <hr class="my-1 border-slate-200">
         <div class="menu-item" onclick="applyHighlight('highlight-yellow')"><div class="color-dot bg-yellow-200"></div> 淡黃標記</div>
         <div class="menu-item" onclick="applyHighlight('highlight-green')"><div class="color-dot bg-green-200"></div> 淡綠標記</div>
@@ -311,6 +313,7 @@
         let selectedImage = null; 
         let contextMenuTargetId = null;
         let contextMenuTargetType = null;
+        let clipboardData = null; // 剪貼簿資料
         
         // Canvas & Undo History
         const canvas = document.getElementById('drawing-canvas');
@@ -568,11 +571,51 @@
 
         document.addEventListener('keydown', (e) => {
             if (e.target.isContentEditable || e.target.tagName === 'INPUT') return;
+            
+            // Delete Key
             if (e.key === 'Delete' || e.key === 'Backspace') {
                 if (selectedNote) { deleteNote(selectedNote); e.preventDefault(); } 
                 else if (selectedImage) { deleteImage(selectedImage); e.preventDefault(); }
             }
+
+            // Copy: Ctrl+C
+            if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+                if (selectedNote) {
+                    copyNote(selectedNote);
+                    e.preventDefault();
+                }
+            }
+
+            // Paste: Ctrl+V
+            if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+                pasteNote();
+                e.preventDefault();
+            }
         });
+
+        // 複製功能
+        function copyNote(note) {
+            const text = note.querySelector('.note-content-wrapper span:last-child').innerText;
+            const highlight = Array.from(note.classList).find(c => c.startsWith('highlight-'));
+            clipboardData = { text: text, highlight: highlight };
+            showToast("已複製");
+        }
+
+        function copyNoteContext() {
+            if (contextMenuTargetType === 'note') {
+                const note = document.getElementById(contextMenuTargetId);
+                if (note) copyNote(note);
+            }
+            document.getElementById("context-menu").style.display = "none";
+        }
+
+        // 貼上功能
+        function pasteNote() {
+            if (!clipboardData) return;
+            // 預設貼到 dim=0, orid=0
+            createNoteElement(clipboardData.text, 0, 0, null, clipboardData.highlight);
+            showToast("已貼上");
+        }
 
         function addNoteBtnClick() {
             const text = document.getElementById("input-text").value.trim();
@@ -813,6 +856,16 @@
             reader.readAsText(file);
         }
         function showToast(msg) { const t = document.getElementById("toast"); t.innerText = msg; t.className = "show"; setTimeout(() => t.className = "", 3000); }
+        function simulateAI() {
+            const input = document.getElementById("input-text").value;
+            if (!input.trim()) { showToast("請輸入內容"); return; }
+            const btn = event.target; const txt = btn.innerText; btn.innerText = "...";
+            setTimeout(() => {
+                document.getElementById("sel-dim").value = Math.floor(Math.random() * 4);
+                document.getElementById("sel-orid").value = Math.floor(Math.random() * 4);
+                btn.innerText = txt; showToast("AI 已分類");
+            }, 600);
+        }
     </script>
 </body>
 </html>
