@@ -56,20 +56,20 @@
         // --- 設定資料 ---
         // 完整的時間表
         const SCHEDULE = [
-            { type: 'break', start: '08:30', end: '08:40', label: '準備' },
-            { type: 'exam',  start: '08:40', end: '09:20', label: '第一節' },
-            { type: 'break', start: '09:20', end: '09:30', label: '下課' },
-            { type: 'exam',  start: '09:30', end: '10:10', label: '第二節' },
-            { type: 'break', start: '10:10', end: '10:30', label: '下課 (大)' },
-            { type: 'exam',  start: '10:30', end: '11:10', label: '第三節' },
-            { type: 'break', start: '11:10', end: '11:20', label: '收卷' }
+            { type: 'break', start: '08:30', end: '08:35', label: '準備' },
+            { type: 'exam',  start: '08:35', end: '09:15', label: '第一節' },
+            { type: 'break', start: '09:15', end: '09:25', label: '下課' },
+            { type: 'exam',  start: '09:25', end: '10:05', label: '第二節' },
+            { type: 'break', start: '10:05', end: '10:25', label: '下課 (大)' },
+            { type: 'exam',  start: '10:25', end: '11:05', label: '第三節' },
+            { type: 'break', start: '11:05', end: '11:15', label: '收卷' }
         ];
 
         // 僅提取考試時段供 A 區顯示使用
         const EXAM_SLOTS = SCHEDULE.filter(s => s.type === 'exam');
 
         const EXAM_MESSAGES = [
-            "考卷記得寫上班級姓名座號",
+            "考卷記得寫上班級姓名全名座號",
             "有問題舉手問老師，需要撿東西請監考老師幫忙",
             "不會寫的題目跳過寫會的題目",
             "耐心、細心、小心",
@@ -80,7 +80,7 @@
         ];
 
         const BREAK_MESSAGES = [
-            "等監考老師點完再離開座位下課",
+            "按號碼收考卷，等監考老師點完再離開座位下課",
             "利用下課準備下個科目與文具用品",
             "提早上廁所喝水",
             "桌面淨空",
@@ -129,7 +129,7 @@
                     return parsed;
                 }
                 return {
-                    subjects: ["國語", "數學", "英文"],
+                    subjects: ["英文", "社會", "自然"],
                     shouldArrive: "",
                     actualArrive: "",
                     absentList: ""
@@ -597,3 +597,4 @@
     </script>
 </body>
 </html>
+update exam schedule
